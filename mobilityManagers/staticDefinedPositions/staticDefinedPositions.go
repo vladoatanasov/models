@@ -1,14 +1,14 @@
-package models
+package staticDefinedPositions
 
 import (
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 )
 
 type staticDefinedPositions struct {
 	positions [][3]float64
 }
 
-func newStaticDefinedPositions() common.MobilityManager {
+func NewStaticDefinedPositions() common.MobilityManager {
 	return &staticDefinedPositions{}
 }
 
@@ -19,18 +19,18 @@ func (mobilityManager *staticDefinedPositions) ParametersHelp() string {
 func (mobilityManager *staticDefinedPositions) Configure(config map[string]interface{}) error {
 	positions, ok := config["Positions"].([]interface{})
 	if ok != true {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	pos := make([][3]float64, len(positions))
 	for i := range positions {
 		position, ok := positions[i].([]interface{})
 		if ok != true {
-			return ParametersNotValid
+			return common.ParametersNotValid
 		}
 		for j := 0; j < 3; j++ {
 			num, ok := position[j].(float64)
 			if ok != true {
-				return ParametersNotValid
+				return common.ParametersNotValid
 			}
 			pos[i][j] = num
 		}

@@ -1,7 +1,7 @@
-package models
+package september1st
 
 import (
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 	"math"
 	"math/rand"
 )
@@ -11,7 +11,7 @@ type september1st struct {
 	noDeliveryDistance float64
 }
 
-func newSeptember1st() common.September {
+func NewSeptember1st() common.September {
 	return &september1st{}
 }
 
@@ -29,7 +29,7 @@ interference.
 func (september *september1st) Configure(config map[string]interface{}) (err error) {
 	dist, ok := config["LowestZeroPacketDeliveryDistance"].(float64)
 	if ok != true {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	september.noDeliveryDistance = dist
 	return nil

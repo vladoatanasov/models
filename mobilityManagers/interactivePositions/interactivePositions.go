@@ -1,8 +1,8 @@
-package models
+package interactivePositions
 
 import (
 	"encoding/json"
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 	"net/http"
 	"os/exec"
 	"path"
@@ -15,7 +15,7 @@ type interactivePositions struct {
 	laddr           string
 }
 
-func newInteractivePositions() common.MobilityManager {
+func NewInteractivePositions() common.MobilityManager {
 	return &interactivePositions{newPositions: make(chan *common.Position)}
 }
 
@@ -27,7 +27,7 @@ func (m *interactivePositions) Configure(config map[string]interface{}) error {
 	var ok bool
 	m.laddr, ok = config["laddr"].(string)
 	if !ok {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	return nil
 }
@@ -76,13 +76,13 @@ func (m *interactivePositions) bindMux() *http.ServeMux {
 	if err != nil {
 		return nil
 	}
-	mux.Handle("/", http.FileServer(http.Dir(path.Join(pkgRoot, "interactivePositions"))))
+	mux.Handle("/", http.FileServer(http.Dir(path.Join(pkgRoot, "assets"))))
 
 	return mux
 }
 
 func getRootPath() (string, error) {
-	out, err := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/songgao/squirrel/models").Output()
+	out, err := exec.Command("go", "list", "-f", "{{.Dir}}", "github.com/squirrel-land/models/mobilityManagers/interactivePositions").Output()
 	if err != nil {
 		return "", err
 	}

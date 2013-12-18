@@ -1,7 +1,7 @@
-package models
+package september2nd
 
 import (
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 
 	"math"
 	"math/rand"
@@ -26,7 +26,7 @@ type september2nd struct {
 	macFrameOverhead int
 }
 
-func newSeptember2nd() common.September {
+func NewSeptember2nd() common.September {
 	ret := new(september2nd)
 	ret.dataRate = 54 * 1024 * 1024 * 1e-9 // 54 Mbps
 	ret.slot = 9e3                         // 9 microseconds
@@ -56,7 +56,7 @@ func (september *september2nd) Configure(config map[string]interface{}) (err err
 	iRange, okIRange := config["InterferenceRange"].(float64)
 
 	if true != (okDist && okIRange) {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 
 	september.noDeliveryDistance = dist

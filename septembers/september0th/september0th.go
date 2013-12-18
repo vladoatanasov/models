@@ -1,14 +1,14 @@
-package models
+package september0th
 
 import (
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 )
 
 type september0th struct {
 	positionManager *common.PositionManager
 }
 
-func newSeptember0th() common.September {
+func NewSeptember0th() common.September {
 	return &september0th{}
 }
 

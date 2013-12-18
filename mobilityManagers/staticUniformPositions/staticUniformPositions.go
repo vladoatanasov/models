@@ -1,7 +1,7 @@
-package models
+package staticUniformPositions
 
 import (
-	"github.com/songgao/squirrel/models/common"
+	"github.com/squirrel-land/models/common"
 )
 
 type staticUniformPositions struct {
@@ -10,7 +10,7 @@ type staticUniformPositions struct {
 	next    func(*common.Position, float64) *common.Position
 }
 
-func newStaticUniformPositions() common.MobilityManager {
+func NewStaticUniformPositions() common.MobilityManager {
 	return &staticUniformPositions{}
 }
 
@@ -29,17 +29,17 @@ Nodes are positioned uniformly on a grid map.
 func (mobilityManager *staticUniformPositions) Configure(config map[string]interface{}) error {
 	spacing, ok := config["Spacing"].(float64)
 	if ok != true {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	shape, ok := config["Shape"].(string)
 	if ok != true {
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	switch shape {
 	case "Linear":
 		mobilityManager.next = staticNextPointLinear
 	default:
-		return ParametersNotValid
+		return common.ParametersNotValid
 	}
 	mobilityManager.spacing = spacing
 	return nil
