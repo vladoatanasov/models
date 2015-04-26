@@ -1,17 +1,18 @@
 package september1st
 
 import (
-	"github.com/squirrel-land/models/common"
+	"errors"
+	"github.com/squirrel-land/squirrel"
 	"math"
 	"math/rand"
 )
 
 type september1st struct {
-	positionManager    *common.PositionManager
+	positionManager    squirrel.PositionManager
 	noDeliveryDistance float64
 }
 
-func NewSeptember1st() common.September {
+func NewSeptember1st() squirrel.September {
 	return &september1st{}
 }
 
@@ -29,13 +30,13 @@ interference.
 func (september *september1st) Configure(config map[string]interface{}) (err error) {
 	dist, ok := config["LowestZeroPacketDeliveryDistance"].(float64)
 	if ok != true {
-		return common.ParametersNotValid
+		return errors.New("LowestZeroPacketDeliveryDistance is missing from config")
 	}
 	september.noDeliveryDistance = dist
 	return nil
 }
 
-func (september *september1st) Initialize(positionManager *common.PositionManager) {
+func (september *september1st) Initialize(positionManager squirrel.PositionManager) {
 	september.positionManager = positionManager
 }
 

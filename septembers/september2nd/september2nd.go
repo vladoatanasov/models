@@ -1,7 +1,8 @@
 package september2nd
 
 import (
-	"github.com/squirrel-land/models/common"
+	"errors"
+	"github.com/squirrel-land/squirrel"
 
 	"math"
 	"math/rand"
@@ -11,7 +12,7 @@ type september2nd struct {
 	noDeliveryDistance float64
 	interferenceRange  float64
 
-	positionManager *common.PositionManager
+	positionManager squirrel.PositionManager
 	buckets         []*leakyBucket // measured by number of nanoseconds used;
 	dataRate        float64        // bit data rates in bit/nanosecond
 
@@ -26,7 +27,7 @@ type september2nd struct {
 	macFrameOverhead int
 }
 
-func NewSeptember2nd() common.September {
+func NewSeptember2nd() squirrel.September {
 	ret := new(september2nd)
 	ret.dataRate = 54 * 1024 * 1024 * 1e-9 // 54 Mbps
 	ret.slot = 9e3                         // 9 microseconds
@@ -56,7 +57,7 @@ func (september *september2nd) Configure(config map[string]interface{}) (err err
 	iRange, okIRange := config["InterferenceRange"].(float64)
 
 	if true != (okDist && okIRange) {
-		return common.ParametersNotValid
+		return errors.New("LowestZeroPacketDeliveryDistance or InterferenceRange is missing from config")
 	}
 
 	september.noDeliveryDistance = dist
@@ -65,7 +66,7 @@ func (september *september2nd) Configure(config map[string]interface{}) (err err
 	return nil
 }
 
-func (september *september2nd) Initialize(positionManager *common.PositionManager) {
+func (september *september2nd) Initialize(positionManager squirrel.PositionManager) {
 	september.positionManager = positionManager
 	september.buckets = make([]*leakyBucket, positionManager.Capacity())
 	for it := range september.buckets {

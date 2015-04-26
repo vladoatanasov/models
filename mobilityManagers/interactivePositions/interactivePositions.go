@@ -2,7 +2,8 @@ package interactivePositions
 
 import (
 	"encoding/json"
-	"github.com/squirrel-land/models/common"
+	"errors"
+	"github.com/squirrel-land/squirrel"
 	"net/http"
 	"os/exec"
 	"path"
@@ -10,13 +11,13 @@ import (
 )
 
 type interactivePositions struct {
-	positionManager *common.PositionManager
-	newPositions    chan *common.Position
+	positionManager squirrel.PositionManager
+	newPositions    chan *squirrel.Position
 	laddr           string
 }
 
-func NewInteractivePositions() common.MobilityManager {
-	return &interactivePositions{newPositions: make(chan *common.Position)}
+func NewInteractivePositions() squirrel.MobilityManager {
+	return &interactivePositions{newPositions: make(chan *squirrel.Position)}
 }
 
 func (m *interactivePositions) ParametersHelp() string {
@@ -27,12 +28,12 @@ func (m *interactivePositions) Configure(config map[string]interface{}) error {
 	var ok bool
 	m.laddr, ok = config["laddr"].(string)
 	if !ok {
-		return common.ParametersNotValid
+		return errors.New("laddr is missing from config")
 	}
 	return nil
 }
 
-func (m *interactivePositions) Initialize(positionManager *common.PositionManager) {
+func (m *interactivePositions) Initialize(positionManager squirrel.PositionManager) {
 	m.positionManager = positionManager
 	go http.ListenAndServe(m.laddr, m.bindMux())
 }
@@ -44,7 +45,7 @@ type JSPosition struct {
 	H float64
 }
 
-func positionFromPosition(i int, p *common.Position) *JSPosition {
+func positionFromPosition(i int, p *squirrel.Position) *JSPosition {
 	return &JSPosition{I: i, X: p.X, Y: p.Y, H: p.Height}
 }
 

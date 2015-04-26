@@ -1,16 +1,17 @@
 package staticUniformPositions
 
 import (
-	"github.com/squirrel-land/models/common"
+	"errors"
+	"github.com/squirrel-land/squirrel"
 )
 
 type staticUniformPositions struct {
-	nodes   []*common.Position
+	nodes   []*squirrel.Position
 	spacing float64
-	next    func(*common.Position, float64) *common.Position
+	next    func(*squirrel.Position, float64) *squirrel.Position
 }
 
-func NewStaticUniformPositions() common.MobilityManager {
+func NewStaticUniformPositions() squirrel.MobilityManager {
 	return &staticUniformPositions{}
 }
 
@@ -29,39 +30,39 @@ Nodes are positioned uniformly on a grid map.
 func (mobilityManager *staticUniformPositions) Configure(config map[string]interface{}) error {
 	spacing, ok := config["Spacing"].(float64)
 	if ok != true {
-		return common.ParametersNotValid
+		return errors.New("Spacing is missing from config")
 	}
 	shape, ok := config["Shape"].(string)
 	if ok != true {
-		return common.ParametersNotValid
+		return errors.New("Shape is missing from config")
 	}
 	switch shape {
 	case "Linear":
 		mobilityManager.next = staticNextPointLinear
 	default:
-		return common.ParametersNotValid
+		return errors.New("unknown shape")
 	}
 	mobilityManager.spacing = spacing
 	return nil
 }
 
-func (mobilityManager *staticUniformPositions) Initialize(positionManager *common.PositionManager) {
+func (mobilityManager *staticUniformPositions) Initialize(positionManager squirrel.PositionManager) {
 	ch := make(chan []int)
 	positionManager.RegisterEnabledChanged(ch)
 	go func() {
 		for {
 			enabled := <-ch
-			var latest *common.Position
+			var latest *squirrel.Position
 			for _, index := range enabled {
 				latest = mobilityManager.next(latest, mobilityManager.spacing)
-				positionManager.SetP(index, latest)
+				positionManager.SetPosition(index, latest)
 			}
 		}
 	}()
 }
 
-func staticNextPointLinear(prev *common.Position, spacing float64) *common.Position {
-	next := &common.Position{}
+func staticNextPointLinear(prev *squirrel.Position, spacing float64) *squirrel.Position {
+	next := &squirrel.Position{}
 	if prev == nil {
 		next.X = 0
 		next.Y = 0

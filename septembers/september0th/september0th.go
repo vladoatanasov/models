@@ -1,14 +1,14 @@
 package september0th
 
 import (
-	"github.com/squirrel-land/models/common"
+	"github.com/squirrel-land/squirrel"
 )
 
 type september0th struct {
-	positionManager *common.PositionManager
+	positionManager squirrel.PositionManager
 }
 
-func NewSeptember0th() common.September {
+func NewSeptember0th() squirrel.September {
 	return &september0th{}
 }
 
@@ -20,7 +20,7 @@ func (september *september0th) Configure(config map[string]interface{}) (err err
 	return nil
 }
 
-func (september *september0th) Initialize(positionManager *common.PositionManager) {
+func (september *september0th) Initialize(positionManager squirrel.PositionManager) {
 	september.positionManager = positionManager
 }
 
