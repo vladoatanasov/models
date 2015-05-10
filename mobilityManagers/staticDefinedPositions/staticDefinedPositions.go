@@ -2,6 +2,11 @@ package staticDefinedPositions
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/squirrel-land/squirrel"
 )
 
@@ -17,26 +22,49 @@ func (mobilityManager *staticDefinedPositions) ParametersHelp() string {
 	return ``
 }
 
-func (mobilityManager *staticDefinedPositions) Configure(config map[string]interface{}) error {
-	positions, ok := config["Positions"].([]interface{})
-	if ok != true {
-		return errors.New("Positions is missing from config")
+func (mobilityManager *staticDefinedPositions) Configure(conf *etcd.Node) (err error) {
+	if conf == nil {
+		err = errors.New("StaticDefinedPositions: conf (*etcd.Node) is nil")
+		return
 	}
-	pos := make([][3]float64, len(positions))
-	for i := range positions {
-		position, ok := positions[i].([]interface{})
-		if ok != true {
-			return errors.New("Positions has invalid type")
-		}
-		for j := 0; j < 3; j++ {
-			num, ok := position[j].(float64)
-			if ok != true {
-				return errors.New("Positions has invalid type")
+
+	onePosition := [3]float64{0, 0, 0}
+	mobilityManager.positions = append(mobilityManager.positions, onePosition)
+	for _, node := range conf.Nodes {
+		if node.Dir && strings.HasSuffix(node.Key, "/positions") {
+			for _, position := range conf.Nodes {
+				var xs, ys, zs bool
+				i := len(mobilityManager.positions) - 1
+				for _, e := range position.Nodes {
+					if !e.Dir && strings.HasSuffix(e.Key, "/x") {
+						mobilityManager.positions[i][0], err = strconv.ParseFloat(e.Value, 64)
+						if err != nil {
+							err = fmt.Errorf("Parsing position value [%s] error: %s\n", e.Key, err.Error())
+							return
+						}
+						xs = true
+					} else if !e.Dir && strings.HasSuffix(e.Key, "/y") {
+						mobilityManager.positions[i][1], err = strconv.ParseFloat(e.Value, 64)
+						if err != nil {
+							err = fmt.Errorf("Parsing position value [%s] error: %s\n", e.Key, err.Error())
+							return
+						}
+						ys = true
+					} else if !e.Dir && strings.HasSuffix(e.Key, "/z") {
+						mobilityManager.positions[i][2], err = strconv.ParseFloat(e.Value, 64)
+						if err != nil {
+							err = fmt.Errorf("Parsing position value [%s] error: %s\n", e.Key, err.Error())
+							return
+						}
+						zs = true
+					}
+				}
+				if xs && ys && zs {
+					mobilityManager.positions = append(mobilityManager.positions, onePosition)
+				}
 			}
-			pos[i][j] = num
 		}
 	}
-	mobilityManager.positions = pos
 	return nil
 }
 

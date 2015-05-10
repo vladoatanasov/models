@@ -3,11 +3,13 @@ package interactivePositions
 import (
 	"encoding/json"
 	"errors"
-	"github.com/squirrel-land/squirrel"
 	"net/http"
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/coreos/go-etcd/etcd"
+	"github.com/squirrel-land/squirrel"
 )
 
 type interactivePositions struct {
@@ -24,10 +26,20 @@ func (m *interactivePositions) ParametersHelp() string {
 	return ``
 }
 
-func (m *interactivePositions) Configure(config map[string]interface{}) error {
-	var ok bool
-	m.laddr, ok = config["laddr"].(string)
-	if !ok {
+func (m *interactivePositions) Configure(conf *etcd.Node) error {
+	if conf == nil {
+		return errors.New("InteractivePositions: conf (*etcd.Node) is nil")
+	}
+
+	found := false
+	for _, node := range conf.Nodes {
+		if !node.Dir && strings.HasSuffix(node.Key, "/laddr") {
+			m.laddr = node.Value
+			found = true
+			break
+		}
+	}
+	if !found {
 		return errors.New("laddr is missing from config")
 	}
 	return nil

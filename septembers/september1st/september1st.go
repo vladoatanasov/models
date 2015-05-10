@@ -2,9 +2,13 @@ package september1st
 
 import (
 	"errors"
-	"github.com/squirrel-land/squirrel"
 	"math"
 	"math/rand"
+	"strconv"
+	"strings"
+
+	"github.com/coreos/go-etcd/etcd"
+	"github.com/squirrel-land/squirrel"
 )
 
 type september1st struct {
@@ -22,18 +26,33 @@ a packet loss (d/D)^4 to each packet, where d is the distance between the two
 nodes, and D is the maximum communication range. It does not consider
 interference.
 
-  "LowestZeroPacketDeliveryDistance": float64, required;
-                                      Maximum transmission range.
+  "transmission_range": float64, required;
+												Maximum transmission range, i.e., the lowest distance
+												where packet delivery ratio will be zero.
     `
 }
 
-func (september *september1st) Configure(config map[string]interface{}) (err error) {
-	dist, ok := config["LowestZeroPacketDeliveryDistance"].(float64)
-	if ok != true {
-		return errors.New("LowestZeroPacketDeliveryDistance is missing from config")
+func (september *september1st) Configure(conf *etcd.Node) (err error) {
+	if conf == nil {
+		err = errors.New("September1st: conf (*etcd.Node) is nil")
+		return
 	}
-	september.noDeliveryDistance = dist
-	return nil
+
+	found := false
+	for _, node := range conf.Nodes {
+		if !node.Dir && strings.HasSuffix(node.Key, "transmission_range") {
+			september.noDeliveryDistance, err = strconv.ParseFloat(node.Value, 64)
+			if err != nil {
+				return
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		err = errors.New("transmission_range is missing from config")
+	}
+	return
 }
 
 func (september *september1st) Initialize(positionManager squirrel.PositionManager) {

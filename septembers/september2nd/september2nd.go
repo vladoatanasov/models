@@ -2,10 +2,13 @@ package september2nd
 
 import (
 	"errors"
-	"github.com/squirrel-land/squirrel"
-
 	"math"
 	"math/rand"
+	"strconv"
+	"strings"
+
+	"github.com/coreos/go-etcd/etcd"
+	"github.com/squirrel-land/squirrel"
 )
 
 type september2nd struct {
@@ -44,26 +47,40 @@ func (september *september2nd) ParametersHelp() string {
 September2nd delivers packets based on a near 802.11 Ad-hoc model. It considers
 distance between nodes and interference, etc..
 
-  "LowestZeroPacketDeliveryDistance": float64, required;
-                                      Maximum transmission range.
-  "InterferenceRange":                float64, required;
-                                      Maximum interference range, normally
-                                      slighly larger than 2x transmission range.
+  "transmission_range": float64, required;
+												Maximum transmission range, i.e., the lowest distance
+												where packet ratio will be zero.
+  "interference_range": float64, required;
+												Maximum interference range, normally slighly larger
+												than 2x transmission range.
     `
 }
 
-func (september *september2nd) Configure(config map[string]interface{}) (err error) {
-	dist, okDist := config["LowestZeroPacketDeliveryDistance"].(float64)
-	iRange, okIRange := config["InterferenceRange"].(float64)
-
-	if true != (okDist && okIRange) {
-		return errors.New("LowestZeroPacketDeliveryDistance or InterferenceRange is missing from config")
+func (september *september2nd) Configure(conf *etcd.Node) (err error) {
+	if conf == nil {
+		err = errors.New("September2nd: conf (*etcd.Node) is nil")
+		return
 	}
 
-	september.noDeliveryDistance = dist
-	september.interferenceRange = iRange
+	for _, node := range conf.Nodes {
+		if !node.Dir && strings.HasSuffix(node.Key, "transmission_range") {
+			september.noDeliveryDistance, err = strconv.ParseFloat(node.Value, 64)
+			if err != nil {
+				return
+			}
+		} else if !node.Dir && strings.HasSuffix(node.Key, "interference_range") {
+			september.interferenceRange, err = strconv.ParseFloat(node.Value, 64)
+			if err != nil {
+				return
+			}
+		}
+	}
 
-	return nil
+	if september.noDeliveryDistance <= 0 || september.interferenceRange <= 0 {
+		err = errors.New("LowestZeroPacketDeliveryDistance or InterferenceRange is missing from config or not greater than 0")
+	}
+
+	return
 }
 
 func (september *september2nd) Initialize(positionManager squirrel.PositionManager) {

@@ -2,6 +2,10 @@ package staticUniformPositions
 
 import (
 	"errors"
+	"strconv"
+	"strings"
+
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/squirrel-land/squirrel"
 )
 
@@ -19,30 +23,47 @@ func (mobilityManager *staticUniformPositions) ParametersHelp() string {
 	return `StaticUniformPositions is a mobility manager in which nodes are not mobile.
 Nodes are positioned uniformly on a grid map.
 
-  "Spacing": float64, required;
+  "spacing": float64, required;
              Space between nodes.
-  "Shape":   string, required;
+  "shape":   string, required;
              The shape which positions of nodes should follow; can be one of
              ["Linear"].
     `
 }
 
-func (mobilityManager *staticUniformPositions) Configure(config map[string]interface{}) error {
-	spacing, ok := config["Spacing"].(float64)
-	if ok != true {
-		return errors.New("Spacing is missing from config")
+func (mobilityManager *staticUniformPositions) Configure(conf *etcd.Node) (err error) {
+	if conf == nil {
+		err = errors.New("StaticUniformPositions: conf (*etcd.Node) is nil")
+		return
 	}
-	shape, ok := config["Shape"].(string)
-	if ok != true {
-		return errors.New("Shape is missing from config")
+
+	var shape string
+
+	for _, node := range conf.Nodes {
+		if !node.Dir && strings.HasSuffix(node.Key, "/spacing") {
+			mobilityManager.spacing, err = strconv.ParseFloat(node.Value, 64)
+			if err != nil {
+				return
+			}
+		} else if !node.Dir && strings.HasSuffix(node.Key, "/shape") {
+			shape = node.Value
+		}
 	}
+
+	if mobilityManager.spacing <= 0 {
+		return errors.New("spacing is missing from config or is not greater than 0")
+	}
+	if shape == "" {
+		return errors.New("shape is missing from config")
+	}
+
 	switch shape {
 	case "Linear":
 		mobilityManager.next = staticNextPointLinear
 	default:
 		return errors.New("unknown shape")
 	}
-	mobilityManager.spacing = spacing
+
 	return nil
 }
 

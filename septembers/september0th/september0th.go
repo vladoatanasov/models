@@ -1,6 +1,7 @@
 package september0th
 
 import (
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/squirrel-land/squirrel"
 )
 
@@ -16,7 +17,7 @@ func (september *september0th) ParametersHelp() string {
 	return `September0th delivers every packet sent into squirrel as long as the src and dst are valid.`
 }
 
-func (september *september0th) Configure(config map[string]interface{}) (err error) {
+func (september *september0th) Configure(conf *etcd.Node) (err error) {
 	return nil
 }
 
