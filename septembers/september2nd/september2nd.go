@@ -36,7 +36,7 @@ func NewSeptember2nd() squirrel.September {
 	ret.slot = 9e3                         // 9 microseconds
 	ret.sifs = 10e3                        // 10 microseconds
 	ret.difs = ret.sifs + 2*ret.slot       // 28 microseconds
-	ret.cWindow = 127                      // 127 slots
+	ret.cWindow = 18                       // 18 slots
 	ret.macFrameMaxBody = 2312 * 8
 	ret.macFrameOverhead = 34
 	return ret
@@ -88,9 +88,9 @@ func (september *september2nd) Initialize(positionManager squirrel.PositionManag
 	september.buckets = make([]*leakyBucket, positionManager.Capacity())
 	for it := range september.buckets {
 		september.buckets[it] = &leakyBucket{
-			BucketSize:        int32(1000 * 1000 * 1000), // 1 second
-			OutResolution:     int32(10),                 //10 millisecond
-			OutPerMilliSecond: int32(1000 * 1000),        // 1000 microseconds gone every milliscond
+			BucketSize:        int32(100 * 1000 * 1000), // 100 millisecond
+			OutResolution:     int32(10),                // 10 millisecond
+			OutPerMilliSecond: int32(1000 * 1000),       // 1000 microseconds gone every milliscond
 		}
 		september.buckets[it].Go()
 	}
@@ -136,6 +136,9 @@ func (september *september2nd) SendUnicast(source int, destination int, size int
 	for _, i := range september.positionManager.Enabled() {
 		d1 := september.positionManager.Distance(source, i)
 		d2 := september.positionManager.Distance(destination, i)
+		if i == destination || i == source {
+			continue
+		}
 		if rand.Float64() < 1-math.Pow(d1/september.interferenceRange, 6) {
 			september.buckets[i].In(september.nanosecByPacket(size))
 		} else if rand.Float64() < 1-math.Pow(d2/september.interferenceRange, 6) {
