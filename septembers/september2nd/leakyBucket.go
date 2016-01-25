@@ -7,40 +7,46 @@ import (
 
 // Thread-safe leaky bucket
 type leakyBucket struct {
-	BucketSize        int32
-	OutResolution     int32 // in milliseconds
-	OutPerMilliSecond int32
+	bucketSize        int64
+	waterDropInterval time.Duration
+	waterDropSize     int64
 
-	bucket  int32
+	bucket  int64
 	started bool
 }
 
-// by far (before Go 1.1), int is 32 bit no matter what arch it is. After Go 1.1 release, int64 should be used here, since int is going to be 64 bit on 64 bit arch and 64 bit machine would be the most common platform that Master runs on.
+func NewLeakyBucket(bucketSize int, waterDropInterval time.Duration, waterDropSize int) *leakyBucket {
+	return &leakyBucket{
+		bucketSize:        int64(bucketSize),
+		waterDropInterval: waterDropInterval,
+		waterDropSize:     int64(waterDropSize),
+	}
+}
 
 func (this *leakyBucket) In(size int) bool {
-	if atomic.LoadInt32(&this.bucket) > this.BucketSize {
+	if atomic.LoadInt64(&this.bucket) > this.bucketSize {
 		return false
 	}
-	atomic.AddInt32(&this.bucket, int32(size))
+	atomic.AddInt64(&this.bucket, int64(size))
 	return true
 }
 
-func (this *leakyBucket) Go() {
-	go func() {
-		sleepTime := time.Duration(this.OutResolution) * time.Millisecond
-		ticker := time.NewTicker(sleepTime)
-		for _ = range ticker.C {
-			if atomic.LoadInt32(&this.bucket) > 0 {
-				atomic.AddInt32(&this.bucket, -int32(atomic.LoadInt32(&this.OutPerMilliSecond)*this.OutResolution))
+func (b *leakyBucket) Go() {
+	if !b.started {
+		b.started = true
+		go func() {
+			ticker := time.NewTicker(b.waterDropInterval)
+			for _ = range ticker.C {
+				if atomic.LoadInt64(&b.bucket) > 0 {
+					atomic.AddInt64(&b.bucket, -b.waterDropSize)
+				}
 			}
-		}
-	}()
+		}()
+	} else {
+		panic("leaky bucket Go() called more than once")
+	}
 }
 
-func (this *leakyBucket) Usage() float64 {
-	return float64(atomic.LoadInt32(&this.bucket)) / float64(this.BucketSize)
-}
-
-func (this *leakyBucket) UpdateOutRate(outPerMilliSecond int) {
-	atomic.StoreInt32(&this.OutPerMilliSecond, int32(outPerMilliSecond))
+func (b *leakyBucket) Usage() float64 {
+	return float64(atomic.LoadInt64(&b.bucket)) / float64(b.bucketSize)
 }

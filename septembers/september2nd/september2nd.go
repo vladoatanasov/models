@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/squirrel-land/squirrel"
@@ -87,11 +88,7 @@ func (september *september2nd) Initialize(positionManager squirrel.PositionManag
 	september.positionManager = positionManager
 	september.buckets = make([]*leakyBucket, positionManager.Capacity())
 	for it := range september.buckets {
-		september.buckets[it] = &leakyBucket{
-			BucketSize:        int32(100 * 1000 * 1000), // 100 millisecond
-			OutResolution:     int32(10),                // 10 millisecond
-			OutPerMilliSecond: int32(1000 * 1000),       // 1000 microseconds gone every milliscond
-		}
+		september.buckets[it] = NewLeakyBucket(100*1000*1000, time.Millisecond, 1000*1000)
 		september.buckets[it].Go()
 	}
 }
