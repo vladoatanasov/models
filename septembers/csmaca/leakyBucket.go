@@ -1,4 +1,4 @@
-package september2nd
+package csmaca
 
 import (
 	"sync/atomic"
