@@ -23,11 +23,11 @@ func NewLeakyBucket(bucketSize int, waterDropInterval time.Duration, waterDropSi
 	}
 }
 
-func (this *leakyBucket) In(size int) bool {
+func (this *leakyBucket) In(size int64) bool {
 	if atomic.LoadInt64(&this.bucket) > this.bucketSize {
 		return false
 	}
-	atomic.AddInt64(&this.bucket, int64(size))
+	atomic.AddInt64(&this.bucket, size)
 	return true
 }
 
