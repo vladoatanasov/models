@@ -67,8 +67,10 @@ func (m *interactivePositions) bindMux() *http.ServeMux {
 	mux.HandleFunc("/list", func(w http.ResponseWriter, req *http.Request) {
 		ret := make([]*JSPosition, 0)
 		for _, index := range m.positionManager.Enabled() {
-			p := m.positionManager.Get(index)
-			ret = append(ret, positionFromPosition(index, &p))
+			p, err := m.positionManager.Get(index)
+			if err == nil {
+				ret = append(ret, positionFromPosition(index, &p))
+			}
 		}
 		json.NewEncoder(w).Encode(ret)
 	})

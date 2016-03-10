@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/squirrel-land/models/mobilityManagers/grpcUpdatablePositions"
 	"github.com/squirrel-land/models/mobilityManagers/interactivePositions"
 	"github.com/squirrel-land/models/mobilityManagers/staticDefinedPositions"
 	"github.com/squirrel-land/models/mobilityManagers/staticUniformPositions"
@@ -14,6 +15,7 @@ var MobilityManagers = map[string]func() squirrel.MobilityManager{
 	"StaticUniformPositions": staticUniformPositions.NewStaticUniformPositions,
 	"StaticDefinedPositions": staticDefinedPositions.NewStaticDefinedPositions,
 	"InteractivePositions":   interactivePositions.NewInteractivePositions,
+	"gRPCUpdatablePositions": grpcUpdatablePositions.NewGRPCUpdatablePositions,
 }
 
 var Septembers = map[string]func() squirrel.September{

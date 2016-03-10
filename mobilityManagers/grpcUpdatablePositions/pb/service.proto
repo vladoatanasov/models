@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package pb;
+
+service PositionService {
+  rpc SetPosition(stream SetPositionRequest) returns (Empty);
+  rpc GetPosition(GetPositionRequest) returns (Position);
+}
+
+message Position {
+  double x = 1;
+  double y = 2;
+  double h = 3;
+}
+
+message SetPositionRequest {
+  string hardwareAddress = 1;
+  Position position = 2;
+}
+
+message GetPositionRequest {
+  string hardwareAddress = 1;
+}
+
+message Empty {}
