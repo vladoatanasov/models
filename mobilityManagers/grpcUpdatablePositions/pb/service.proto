@@ -3,7 +3,7 @@ syntax = "proto3";
 package pb;
 
 service PositionService {
-  rpc SetPosition(stream SetPositionRequest) returns (Empty);
+  rpc SetPosition(SetPositionRequest) returns (Empty);
   rpc GetPosition(GetPositionRequest) returns (Position);
 }
 

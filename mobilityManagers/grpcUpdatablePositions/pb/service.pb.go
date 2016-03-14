@@ -97,7 +97,7 @@ const _ = grpc.SupportPackageIsVersion1
 // Client API for PositionService service
 
 type PositionServiceClient interface {
-	SetPosition(ctx context.Context, opts ...grpc.CallOption) (PositionService_SetPositionClient, error)
+	SetPosition(ctx context.Context, in *SetPositionRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetPosition(ctx context.Context, in *GetPositionRequest, opts ...grpc.CallOption) (*Position, error)
 }
 
@@ -109,38 +109,13 @@ func NewPositionServiceClient(cc *grpc.ClientConn) PositionServiceClient {
 	return &positionServiceClient{cc}
 }
 
-func (c *positionServiceClient) SetPosition(ctx context.Context, opts ...grpc.CallOption) (PositionService_SetPositionClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_PositionService_serviceDesc.Streams[0], c.cc, "/pb.PositionService/SetPosition", opts...)
+func (c *positionServiceClient) SetPosition(ctx context.Context, in *SetPositionRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := grpc.Invoke(ctx, "/pb.PositionService/SetPosition", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &positionServiceSetPositionClient{stream}
-	return x, nil
-}
-
-type PositionService_SetPositionClient interface {
-	Send(*SetPositionRequest) error
-	CloseAndRecv() (*Empty, error)
-	grpc.ClientStream
-}
-
-type positionServiceSetPositionClient struct {
-	grpc.ClientStream
-}
-
-func (x *positionServiceSetPositionClient) Send(m *SetPositionRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *positionServiceSetPositionClient) CloseAndRecv() (*Empty, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(Empty)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 func (c *positionServiceClient) GetPosition(ctx context.Context, in *GetPositionRequest, opts ...grpc.CallOption) (*Position, error) {
@@ -155,7 +130,7 @@ func (c *positionServiceClient) GetPosition(ctx context.Context, in *GetPosition
 // Server API for PositionService service
 
 type PositionServiceServer interface {
-	SetPosition(PositionService_SetPositionServer) error
+	SetPosition(context.Context, *SetPositionRequest) (*Empty, error)
 	GetPosition(context.Context, *GetPositionRequest) (*Position, error)
 }
 
@@ -163,30 +138,16 @@ func RegisterPositionServiceServer(s *grpc.Server, srv PositionServiceServer) {
 	s.RegisterService(&_PositionService_serviceDesc, srv)
 }
 
-func _PositionService_SetPosition_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(PositionServiceServer).SetPosition(&positionServiceSetPositionServer{stream})
-}
-
-type PositionService_SetPositionServer interface {
-	SendAndClose(*Empty) error
-	Recv() (*SetPositionRequest, error)
-	grpc.ServerStream
-}
-
-type positionServiceSetPositionServer struct {
-	grpc.ServerStream
-}
-
-func (x *positionServiceSetPositionServer) SendAndClose(m *Empty) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *positionServiceSetPositionServer) Recv() (*SetPositionRequest, error) {
-	m := new(SetPositionRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _PositionService_SetPosition_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetPositionRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	out, err := srv.(PositionServiceServer).SetPosition(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func _PositionService_GetPosition_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
@@ -206,21 +167,19 @@ var _PositionService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*PositionServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "SetPosition",
+			Handler:    _PositionService_SetPosition_Handler,
+		},
+		{
 			MethodName: "GetPosition",
 			Handler:    _PositionService_GetPosition_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "SetPosition",
-			Handler:       _PositionService_SetPosition_Handler,
-			ClientStreams: true,
-		},
-	},
+	Streams: []grpc.StreamDesc{},
 }
 
 var fileDescriptor0 = []byte{
-	// 210 bytes of a gzipped FileDescriptorProto
+	// 208 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x2d, 0x4e, 0x2d, 0x2a,
 	0xcb, 0x4c, 0x4e, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x2a, 0x48, 0x52, 0x32, 0xe1,
 	0xe2, 0x08, 0xc8, 0x2f, 0xce, 0x2c, 0xc9, 0xcc, 0xcf, 0x13, 0xe2, 0xe1, 0x62, 0xac, 0x90, 0x60,
@@ -230,9 +189,8 @@ var fileDescriptor0 = []byte{
 	0x2c, 0x4a, 0x75, 0x4c, 0x49, 0x29, 0x4a, 0x2d, 0x2e, 0x06, 0x9b, 0xc6, 0x19, 0x84, 0x2e, 0x0c,
 	0x54, 0xc9, 0x51, 0x00, 0xd5, 0x0c, 0xb6, 0x82, 0xdb, 0x88, 0x47, 0xaf, 0x20, 0x49, 0x0f, 0x6e,
 	0x20, 0x5c, 0x56, 0xc9, 0x8e, 0x4b, 0xc8, 0x9d, 0x02, 0x9b, 0x94, 0xd8, 0xb9, 0x58, 0x5d, 0x73,
-	0x0b, 0x4a, 0x2a, 0x8d, 0xaa, 0xb8, 0xf8, 0x61, 0xa6, 0x04, 0x43, 0x42, 0x41, 0xc8, 0x88, 0x8b,
+	0x0b, 0x4a, 0x2a, 0x8d, 0x2a, 0xb8, 0xf8, 0x61, 0xa6, 0x04, 0x43, 0x42, 0x41, 0xc8, 0x80, 0x8b,
 	0x1b, 0xc9, 0x17, 0x42, 0x62, 0x20, 0x27, 0x60, 0x7a, 0x4b, 0x8a, 0x13, 0x24, 0x0e, 0x36, 0x44,
-	0x83, 0x51, 0xc8, 0x98, 0x8b, 0xdb, 0x1d, 0x5d, 0x0f, 0xa6, 0x03, 0xa5, 0x50, 0xbc, 0x93, 0xc4,
-	0x06, 0x0e, 0x6f, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd7, 0x3d, 0x87, 0xf3, 0x80, 0x01,
-	0x00, 0x00,
+	0xc8, 0x98, 0x8b, 0xdb, 0x1d, 0x5d, 0x07, 0xa6, 0xf3, 0xa4, 0x50, 0x3c, 0x93, 0xc4, 0x06, 0x0e,
+	0x6d, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0x3a, 0x94, 0x41, 0x5f, 0x7e, 0x01, 0x00, 0x00,
 }

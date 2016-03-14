@@ -18,10 +18,12 @@ import (
 type grpcUpdatablePositions struct {
 	pm  squirrel.PositionManager
 	lis net.Listener
+
+	empty *pb.Empty
 }
 
 func NewGRPCUpdatablePositions() squirrel.MobilityManager {
-	return &grpcUpdatablePositions{}
+	return &grpcUpdatablePositions{empty: new(pb.Empty)}
 }
 
 func (m *grpcUpdatablePositions) ParametersHelp() string {
@@ -63,9 +65,11 @@ func (m *grpcUpdatablePositions) Initialize(positionManager squirrel.PositionMan
 	m.pm = positionManager
 	gs := grpc.NewServer()
 	pb.RegisterPositionServiceServer(gs, m)
-	if err := gs.Serve(m.lis); err != nil {
-		log.Fatalf("initializing gRPC server error: %s", err.Error())
-	}
+	go func() {
+		if err := gs.Serve(m.lis); err != nil {
+			log.Fatalf("initializing gRPC server error: %s", err.Error())
+		}
+	}()
 }
 
 func (m *grpcUpdatablePositions) GetPosition(ctx context.Context, req *pb.GetPositionRequest) (pos *pb.Position, err error) {
@@ -78,14 +82,10 @@ func (m *grpcUpdatablePositions) GetPosition(ctx context.Context, req *pb.GetPos
 	return
 }
 
-func (m *grpcUpdatablePositions) SetPosition(s pb.PositionService_SetPositionServer) (err error) {
-	var req *pb.SetPositionRequest
-	for {
-		if req, err = s.Recv(); err != nil {
-			if er := m.pm.SetAddr(req.HardwareAddress, req.Position.X, req.Position.Y, req.Position.H); er != nil {
-				log.Printf("setting position for %s error: %s", req.HardwareAddress, err.Error())
-			}
-		}
+func (m *grpcUpdatablePositions) SetPosition(ctx context.Context, req *pb.SetPositionRequest) (empty *pb.Empty, err error) {
+	if er := m.pm.SetAddr(req.HardwareAddress, req.Position.X, req.Position.Y, req.Position.H); er != nil {
+		log.Printf("setting position for %s error: %s", req.HardwareAddress, err.Error())
 	}
+	empty = m.empty
 	return
 }
