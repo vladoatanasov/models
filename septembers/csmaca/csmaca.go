@@ -30,7 +30,6 @@ type csmaca struct {
 func CreateSeptember() squirrel.September {
 	ret := new(csmaca)
 	ret.dataRate = 54 * 1024 * 1024 * 1e-9
-	ret.difs = ret.phy.sifs + 2*ret.phy.slot
 	ret.ucastMaxTXAttempts = 7
 	return ret
 }
@@ -42,18 +41,18 @@ delivers packets based on a near 802.11 Ad-hoc model. It considers distance
 between nodes and interference, etc..
 
   "transmission_range": float64, required;
-												Maximum transmission range, i.e., the lowest distance
-												where packet ratio will be zero.
+                        Maximum transmission range, i.e., the lowest distance
+                        where packet ratio will be zero.
   "interference_range": float64, required;
-												Maximum interference range, normally slighly larger
-												than 2x transmission range.
+                        Maximum interference range, normally slighly larger
+                        than 2x transmission range.
   "mac_protocol"      : string, required;
-												The MAC layer protocol to use. Has to be one of:
-												802.11a, 802.11g, 802.11p10MHz, 802.11p20MHz.
-	"max_ucast_attempts": int, required;
-												The maximum number of transmissions that a STA can
-												attempt for the same fame. This is for MAC layer
-												unicast retransmissions.
+                        The MAC layer protocol to use. Has to be one of:
+                        802.11a, 802.11g, 802.11p10MHz, 802.11p20MHz.
+  "max_ucast_attempts": int, required;
+                        The maximum number of transmissions that a STA can
+                        attempt for the same fame. This is for MAC layer
+                        unicast retransmissions.
     `
 }
 
@@ -84,6 +83,9 @@ func (c *csmaca) Configure(conf *etcd.Node) (err error) {
 				c.phy = phy80211p10
 			case "802.11p20MHz":
 				c.phy = phy80211p20
+			default:
+				err = errors.New("unknown mac_protocol")
+				return
 			}
 		} else if !node.Dir && strings.HasSuffix(node.Key, "max_ucast_attempts") {
 			c.ucastMaxTXAttempts, err = strconv.Atoi(node.Value)
@@ -106,8 +108,13 @@ func (c *csmaca) Configure(conf *etcd.Node) (err error) {
 	if c.ucastMaxTXAttempts <= 0 {
 		errorParameters = append(errorParameters, "max_ucast_attempts")
 	}
-	err = fmt.Errorf("parameter(s) missing or invalid: %v", errorParameters)
 
+	if len(errorParameters) != 0 {
+		err = fmt.Errorf("parameter(s) missing or invalid: %v", errorParameters)
+		return
+	}
+
+	c.difs = c.phy.sifs + 2*c.phy.slot
 	return
 }
 
