@@ -29,8 +29,6 @@ type csmaca struct {
 
 func CreateSeptember() squirrel.September {
 	ret := new(csmaca)
-	ret.dataRate = 54 * 1024 * 1024 * 1e-9
-	ret.ucastMaxTXAttempts = 7
 	return ret
 }
 
@@ -53,6 +51,8 @@ between nodes and interference, etc..
                         The maximum number of transmissions that a STA can
                         attempt for the same fame. This is for MAC layer
                         unicast retransmissions.
+	"data_rate_mbps":     float64, required;
+												MAC data rate in Mbps.
     `
 }
 
@@ -92,6 +92,12 @@ func (c *csmaca) Configure(conf *etcd.Node) (err error) {
 			if err != nil {
 				return
 			}
+		} else if !node.Dir && strings.HasSuffix(node.Key, "data_rate_mbps") {
+			c.dataRate, err = strconv.ParseFloat(node.Value, 64)
+			if err != nil {
+				return
+			}
+			c.dataRate = c.dataRate * 1024 * 1024 * 1e-9
 		}
 	}
 
@@ -107,6 +113,9 @@ func (c *csmaca) Configure(conf *etcd.Node) (err error) {
 	}
 	if c.ucastMaxTXAttempts <= 0 {
 		errorParameters = append(errorParameters, "max_ucast_attempts")
+	}
+	if c.dataRate <= 0 {
+		errorParameters = append(errorParameters, "data_rate_mbps")
 	}
 
 	if len(errorParameters) != 0 {
