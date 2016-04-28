@@ -160,19 +160,19 @@ func (c *csmaca) deliverRate(dest int, dist float64) float64 {
 	return p_rate * (1 - math.Pow(dist/c.transmissionRange, 3))
 }
 
-func (c *csmaca) SendUnicast(source int, destination int, size int) bool {
+func (c *csmaca) SendUnicast(source int, destination int, size int) (shouldDeliver bool) {
 	if !(c.positionManager.IsEnabled(source) && c.positionManager.IsEnabled(destination)) {
-		return false
+		return
 	}
 
 	durationFrame := c.durationOfDataFrame(size)
 	durationAck := c.durationOfAckFrame()
 
-	usend := func(cw int) bool {
+	usend := func(cw int) (data bool, ack bool) {
 
 		// Go through source bucket
 		if !c.buckets[source].In(int64(c.difs + c.bo(cw) + durationFrame)) {
-			return false
+			return
 		}
 
 		dist := c.positionManager.Distance(source, destination)
@@ -191,26 +191,31 @@ func (c *csmaca) SendUnicast(source int, destination int, size int) bool {
 			}
 		}
 
-		// The data frame takes the adventure in the air (fading, etc.)
-		if rand.Float64() > c.deliverRate(destination, dist) {
-			return false
+		// data frame Go through destination bucket;
+		// we do this before dlieverRate() because no matter it's delivered or not,
+		// interference should be generated.
+		if !c.buckets[destination].In(int64(durationFrame)) {
+			return
 		}
 
-		// data frame Go through destination bucket
-		if !c.buckets[destination].In(int64(durationFrame)) {
-			return false
+		// The data frame takes the adventure in the air (fading, etc.)
+		if rand.Float64() > c.deliverRate(destination, dist) {
+			return
 		}
+
+		data = true
 
 		// ACK Go through destination bucket
 		if !c.buckets[destination].In(int64(durationAck)) {
-			return false
+			return
 		}
 
-		// Since the packet is delivered, ACK should be sent. Interference should be
-		// put on neighbor nodes of the destination node
+		// ACK should be sent. Interference should be put on neighbor nodes of the
+		// destination node
 		for _, i := range c.positionManager.Enabled() {
-			if i == destination {
-				// destination's bucket is already done
+			if i == destination || i == source {
+				// destination's bucket is already done;
+				// we deal with source bucket later.
 				continue
 			}
 			d2 := c.positionManager.Distance(destination, i)
@@ -219,19 +224,37 @@ func (c *csmaca) SendUnicast(source int, destination int, size int) bool {
 			}
 		}
 
-		// The packet is gonna be delivered!
-		return true
+		// ACK frame Go through source bucket;
+		// we do this before dlieverRate() because no matter it's delivered or not,
+		// interference should be generated.
+		if !c.buckets[source].In(int64(durationAck)) {
+			return
+		}
+
+		// The ACK frame takes the adventure in the air (fading, etc.)
+		if rand.Float64() > c.deliverRate(destination, dist) {
+			return
+		}
+
+		ack = true
+
+		return
 	}
 
 	for i, cw := 0, c.phy.cwMin; i < c.ucastMaxTXAttempts; i++ {
-		if usend(cw) {
-			return true
+		data, ack := usend(cw)
+		if data {
+			shouldDeliver = true
+		}
+		if ack {
+			break
 		}
 		if cw <= c.phy.cwMax/2 {
 			cw = cw*2 - 1
 		}
 	}
-	return false
+
+	return
 }
 
 func (c *csmaca) SendBroadcast(source int, size int, underlying []int) []int {
@@ -250,21 +273,24 @@ func (c *csmaca) SendBroadcast(source int, size int, underlying []int) []int {
 	for _, i := range c.positionManager.Enabled() {
 		dist := c.positionManager.Distance(source, i)
 		if dist < c.transmissionRange {
-			// The packet takes the adventure in the air (fading, etc.)
-			if rand.Float64() > c.deliverRate(i, dist) {
+
+			// Go through destination bucket. If rejected by the bucket, the
+			// broadcasted packet should not be delivered to this node;
+			// we do this before dlieverRate() because no matter it's delivered or
+			// not, interference should be generated.
+			if !c.buckets[i].In(int64(durationFrame)) {
 				continue
 			}
 
-			// Go through destination bucket. If rejected by the bucket, the
-			// broadcasted packet should not be delivered to this node
-			if !c.buckets[i].In(int64(durationFrame)) {
+			// The packet takes the adventure in the air (fading, etc.)
+			if rand.Float64() > c.deliverRate(i, dist) {
 				continue
 			}
 
 			// The packet is gonna be delivered!
 			underlying[count] = i
 			count++
-		} else if dist < c.interferenceRange {
+		} else if rand.Float64() < 1-math.Pow(dist/c.interferenceRange, 6) {
 			// not in communication range, but still generating interference
 			c.buckets[i].In(int64(durationFrame))
 		}
